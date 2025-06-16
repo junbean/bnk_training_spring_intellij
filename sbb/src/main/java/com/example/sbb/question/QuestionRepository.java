@@ -1,11 +1,13 @@
-package com.example.sbb.repository;
+package com.example.sbb.question;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.example.sbb.entity.Question;
+import java.util.List;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Integer>{
 	Question findBySubject(String subject);
+	Question findBySubjectAndContent(String subject, String content);
+	List<Question> findBySubjectLike(String subject);
 }

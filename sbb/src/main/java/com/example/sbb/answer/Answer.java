@@ -1,9 +1,8 @@
-package com.example.sbb.entity;
+package com.example.sbb.answer;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.ManyToAny;
-
+import com.example.sbb.question.Question;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -29,5 +28,4 @@ public class Answer {
 	
 	@ManyToOne
 	private Question question;
-	
 }
