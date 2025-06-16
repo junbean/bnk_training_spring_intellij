@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>유저페이지</h1>
+    <hr>
+	
+	<!-- 토큰 정보 표시 -->
+    <div id="tokenInfo" class="token-info"></div>
+    
+    <!-- 로딩/결과 메시지 -->
+    <div id="statusArea"></div>
+    
+    <!-- 사용자 정보 표시 -->
+    <div id="userDataArea"></div>
+    
+    <!-- 버튼들 -->
+    <button onclick="loadUserData()">사용자 정보 조회</button>
+    <button onclick="logout()">로그아웃</button>
+    
+    <p><a href="/">메인으로</a></p>
+    
+    <script>
+        // 페이지 로드시 실행
+        window.onload = function() {
+            checkAuthAndLoadData();
+        }
+        
+        function checkAuthAndLoadData() {
+            const token = localStorage.getItem('userAuth');
+            const tokenInfo = document.getElementById('tokenInfo');
+            const statusArea = document.getElementById('statusArea');
+            
+            if (!token) {
+                // 토큰이 없으면 로그인 페이지로 리다이렉트
+                tokenInfo.innerHTML = '<span style="color: red;">토큰이 없습니다.</span>';
+                statusArea.innerHTML = '<div class="message error">로그인이 필요합니다. 3초 후 로그인 페이지로 이동합니다.</div>';
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+                return;
+            }
+            
+            // 토큰 정보 표시
+            tokenInfo.innerHTML = `<strong>사용중인 토큰:</strong> ${token}`;
+            
+            // 자동으로 사용자 데이터 로드
+            loadUserData();
+        }
+        
+        function loadUserData() {
+            const token = localStorage.getItem('userAuth');
+            const statusArea = document.getElementById('statusArea');
+            const userDataArea = document.getElementById('userDataArea');
+            
+            if (!token) {
+                statusArea.innerHTML = '<div class="message error">토큰이 없습니다.</div>';
+                return;
+            }
+            
+            // 로딩 표시
+            statusArea.innerHTML = '<div class="message loading">사용자 정보를 조회중...</div>';
+            userDataArea.innerHTML = '';
+            
+            // /user API 호출
+            fetch('/user', {
+                method: 'GET',
+                headers: {
+                    'userAuth': token
+                }
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    return response.text();
+                } else if (response.status === 401) {
+                    throw new Error('인증 실패 - 토큰이 유효하지 않습니다.');
+                } else {
+                    throw new Error(`서버 오류: ${response.status}`);
+                }
+            })
+            .then(userData => {
+                // 성공
+                statusArea.innerHTML = '<div class="message success">사용자 정보 조회 성공!</div>';
+                userDataArea.innerHTML = `
+                    <div class="message success">
+                        <h3>인증된 사용자 정보:</h3>
+                        <p><strong>사용자명:</strong> ${userData}</p>
+                        <p><em>인증된 회원만 입장 가능한 페이지입니다.</em></p>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                // 실패
+                console.error('사용자 정보 조회 오류:', error);
+                statusArea.innerHTML = `<div class="message error">오류: ${error.message}</div>`;
+                userDataArea.innerHTML = '';
+                
+                // 인증 오류인 경우 토큰 삭제하고 로그인 페이지로
+                if (error.message.includes('인증 실패')) {
+                    localStorage.removeItem('userAuth');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                }
+            });
+        }
+        
+        function logout() {
+            // 토큰 삭제
+            localStorage.removeItem('userAuth');
+            
+            // 메시지 표시
+            document.getElementById('statusArea').innerHTML = 
+                '<div class="message success">로그아웃되었습니다. 3초 후 메인페이지로 이동합니다.</div>';
+            document.getElementById('userDataArea').innerHTML = '';
+            document.getElementById('tokenInfo').innerHTML = '';
+            
+            // 메인 페이지로 이동
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 3000);
+        }
+    </script>
+
+</body>
+</html>

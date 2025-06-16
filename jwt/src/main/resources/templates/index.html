@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JWT Demo</title>
+</head>
+<body>
+    <h1>JWT 데모 - 인덱스 페이지</h1>
+    <hr>
+    
+    <!-- 토큰 상태 표시 -->
+    <div id="tokenStatus" class="token-info">
+        <span id="loginStatus">로그인되지 않음</span>
+        <button onclick="clearToken()" style="margin-left: 10px;">토큰 초기화</button>
+    </div>
+    
+    <a href="/login">로그인</a><br>
+    <a href="/user">유저페이지</a><br>
+    
+    <script>
+        // 페이지 로드시 토큰 상태 확인
+        window.onload = function() {
+            checkTokenStatus();
+        }
+        
+        function checkTokenStatus() {
+            const token = localStorage.getItem('userAuth');
+            const statusElement = document.getElementById('loginStatus');
+            
+            if (token) {
+                statusElement.innerHTML = `<span class="success">로그인됨: ${token}</span>`;
+            } else {
+                statusElement.innerHTML = '<span class="error">로그인되지 않음</span>';
+            }
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('userAuth');
+            checkTokenStatus();
+            alert('토큰이 초기화되었습니다.');
+        }
+    </script>
+</body>
+</html>

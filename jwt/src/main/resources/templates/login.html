@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+	<h1>로그인 페이지</h1>
+	<hr>
+	
+    <!-- 기존 폼을 AJAX로 변경 -->
+    <form id="loginForm">
+        username : <input type="text" id="username" placeholder="유저이름 입력.." required><br>
+        password : <input type="password" id="password" placeholder="패스워드 입력.." required><br>
+        <button type="submit">로그인하기</button>
+    </form>
+	
+    <!-- 결과 메시지 표시 영역 -->
+    <div id="messageArea"></div>
+    
+    <!-- 받은 토큰 표시 영역 -->
+    <div id="tokenArea"></div>
+    
+    <p><a href="index.html">메인으로</a></p>
+	
+	<script>
+		// 폼 제출 이벤트 처리
+	    document.getElementById('loginForm').addEventListener('submit', function(e) {
+	        e.preventDefault(); // 기본 폼 제출 방지
+	        
+	        const username = document.getElementById('username').value;
+	        const password = document.getElementById('password').value;
+	        
+	        // AJAX 로그인 요청
+	        loginWithAjax(username, password);
+	    });
+		
+		function loginWithAjax(username, password) {
+			const loginData = {
+				username: username,
+				password: password
+			};
+			
+			fetch('/login', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(loginData)
+			})
+			.then(response => {
+				// 응답 헤더에서 userAuth 추출
+				const userAuth = response.headers.get('userAuth');
+				
+				// 응답 본문 일기
+				return response.text().then(text => {
+					return {
+						status: response.status,
+						body: text,
+						userAuth: userAuth
+					}
+				});
+			})
+			.then(data => {
+				const messageArea = document.getElementById('messageArea');
+				const tokenArea = document.getElementById('tokenArea');
+				
+				if(data.status === 200 && data.userAuth) {
+					// 로그인 성공
+					messageArea.innerHTML = `<div class="message success">${data.body}</div>`;
+                    tokenArea.innerHTML = `
+                        <div class="token-display">
+                            <strong>받은 토큰:</strong> ${data.userAuth}<br>
+                            <em>이 토큰이 localStorage에 저장되었습니다.</em>
+                        </div>
+                    `;
+                    
+                 	// localStorage에 토큰 저장
+                    localStorage.setItem('userAuth', data.userAuth);
+                    
+                 	// 3초 후 유저 페이지로 이동
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+				} else {
+                    // 로그인 실패
+                    messageArea.innerHTML = `<div class="message error">${data.body}</div>`;
+                    tokenArea.innerHTML = '';
+                    
+                    // localStorage에서 토큰 제거
+                    localStorage.removeItem('userAuth');
+                }
+			})
+			.catch(error => {
+                console.error('로그인 오류:', error);
+                document.getElementById('messageArea').innerHTML = 
+                    `<div class="message error">로그인 요청 중 오류가 발생했습니다.</div>`;
+            });
+		}
+		
+		// 페이지 로드시 기존 토큰 표시
+        window.onload = function() {
+            const savedToken = localStorage.getItem('userAuth');
+            if (savedToken) {
+                document.getElementById('tokenArea').innerHTML = `
+                    <div class="token-display">
+                        <strong>저장된 토큰:</strong> ${savedToken}
+                    </div>
+                `;
+            }
+        }
+	</script>
+</body>
+</html>
