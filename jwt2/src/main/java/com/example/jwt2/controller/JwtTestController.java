@@ -63,8 +63,7 @@ public class JwtTestController {
 	private String makeJwt(String username) {
 		return "Bearer " + jwtUtil.createJwt(username);
 	}
-	
-	
+
 	/*
 	   // split(" ")으로 나누면 "Bearer xxx.yyy.zzz" → ["Bearer", "xxx.yyy.zzz"]
        String[] parts = userAuth.split(" ");

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        // 페이지 로딩 시 자동 실행
+        window.onload = async function () {
+          const token = localStorage.getItem("token");
+
+          if (!token) {
+            document.getElementById("userinfo").innerText = "❌ JWT가 없습니다. 로그인이 필요합니다.";
+            return;
+          }
+
+          try {
+            const response = await fetch("/user", {
+              method: "GET",
+              headers: {
+                "userAuth": token
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.text();
+              document.getElementById("userinfo").innerText = "✅ 사용자 정보: " + data;
+            } else {
+              document.getElementById("userinfo").innerText = "❌ 토큰이 만료되었거나 유효하지 않습니다.";
+            }
+
+          } catch (err) {
+            document.getElementById("userinfo").innerText = "❌ 요청 중 오류 발생: " + err;
+          }
+        }
+    </script>
+</head>
+<body>
+    <h1>Welcome to JWT Demo</h1>
+    <div id="userinfo">🔄 사용자 정보를 불러오는 중...</div>
+    <br>
+    <a href="/">🏠 인덱스로 돌아가기</a>
+</body>
+</html>

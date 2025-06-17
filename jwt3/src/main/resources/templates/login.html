@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <h1>로그인 페이지</h1>
+    <hr>
+    <label>
+        유저이름 : <input type="text" id="username" placeholder="username을 입력하세요...">
+    </label>
+    <br>
+    <label>
+        패스워드 : <input type="password" id="password" placeholder="password을 입력하세요...">
+    </label>
+    <br>
+    <button onclick="login()">로그인 하기</button>
+
+    <script>
+        async function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (response.ok) {
+                const token = response.headers.get("userAuth");
+                if (token) {
+                    // JWT를 localStorage에 저장
+                    localStorage.setItem("token", token);
+
+                    // 로그인 성공 → 마이페이지로 이동
+                    alert("로그인 성공!");
+                    window.location.href = "/mypage";
+                } else {
+                    alert("서버 응답에 토큰이 없습니다.");
+                }
+            } else {
+                alert("로그인 실패! 아이디 또는 비밀번호를 확인하세요.");
+            }
+        }
+    </script>
+</body>
+</html>
