@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+</head>
+<body>
+  <h1>Login Page</h1>
+  <hr>
+  USERNAME : <input type="text" id="username" placeholder="input username..."><br>
+  PASSWORD : <input type="password" id="password" placeholder="input password..."><br>
+  <button onclick="login()">Login</button>
+
+  <script>
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Login failed");
+        return res.json();
+      })
+      .then(data => {
+        // 토큰 저장 (localStorage)
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        // 페이지 이동
+        window.location.href = "/mypage";
+      })
+      .catch(err => alert(err.message));
+    }
+  </script>
+</body>
+</html>

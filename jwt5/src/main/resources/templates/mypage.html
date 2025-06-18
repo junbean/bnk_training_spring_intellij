@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Page</title>
+</head>
+<body>
+  <h1 id="welcome">Loading...</h1>
+  <button onclick="logout()">Logout</button>
+
+  <script>
+    // 로그인 회원 인가 함수
+    async function checkAccess() {
+      const accessToken = localStorage.getItem('accessToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      // 1차 인가 시도
+      let response = await fetch('/access', {
+        headers: {
+          'Authorization': 'Bearer ' + accessToken
+        }
+      });
+
+      if (response.ok) {
+        const username = await response.text();
+        document.getElementById('welcome').innerText = `Hello, ${username}!`;
+        return;
+      }
+
+      // access token이 만료된 경우 → refresh 시도
+      response = await fetch('/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('accessToken', data.accessToken);
+
+        // 다시 인가 시도
+        return checkAccess();
+      } else {
+        alert("Session expired. Please log in again.");
+        window.location.href = "/login";
+      }
+    }
+
+    // 로그아웃 함수
+    function logout() {
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      fetch('/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      })
+      .then(res => {
+        // 프론트 저장된 토큰 제거
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        alert("You have been logged out.");
+        window.location.href = "/login";
+      });
+    }
+
+    window.onload = checkAccess;
+  </script>
+</body>
+</html>
