@@ -1,0 +1,14 @@
+FlutterApiController 마늗ㄹ기
+컨트롤러 대표 요청 경로 : /basic
+
+getUser 메서드 만들기
+요청 경로 : /user
+
+    아래 객체를 JSON으로 클라이언트에 ㅔㅈ공
+    User 객체 생성
+        이름 : James Dean
+        나이 : 45
+        메세지 : Hello~
+
+
+
