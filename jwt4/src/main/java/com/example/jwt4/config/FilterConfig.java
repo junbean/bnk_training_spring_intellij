@@ -20,11 +20,12 @@ public class FilterConfig {
     @Bean
     public FilterRegistrationBean<JwtFilter> jwtFilter() {
         FilterRegistrationBean<JwtFilter> filterBean = new FilterRegistrationBean<>();
+
         filterBean.setFilter(new JwtFilter(jwtUtil));
         filterBean.addUrlPatterns("/api/*"); // 이 경로에만 필터 적용됨
+
         return filterBean;
     }
-
 }
 
 /*
