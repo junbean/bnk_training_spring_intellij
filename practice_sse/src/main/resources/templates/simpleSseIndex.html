@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SSE 카운터 테스트</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+            #messages {
+                border: 1px solid #ccc;
+                padding: 10px;
+                height: 300px;
+                overflow-y: auto;
+            }
+            button {
+                margin: 5px;
+                padding: 10px;
+            }
+            .message {
+                margin: 2px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>SSE 카운터 테스트</h1>
+        <div id="messages"></div>
+        <button onclick="startSSE()">SSE 시작</button>
+        <button onclick="stopSSE()">SSE 중지</button>
+
+        <script>
+            let eventSource = null;
+
+            function startSSE() {
+                if (eventSource) {
+                    eventSource.close();
+                }
+
+                addMessage("SSE 연결 시도 중...");
+
+                // EventSource 생성: 브라우저가 자동으로 HTTP 요청 생성
+                // 요청 헤더에 Accept: text/event-stream 자동 추가
+                eventSource = new EventSource("/api/simple-events");
+
+                // onopen: 연결이 성공적으로 열렸을 때 실행
+                // 서버가 200 OK 응답을 보내면 발생
+                eventSource.onopen = function (event) {
+                    addMessage("✅ 연결 성공: SSE 시작!", "success");
+                    console.log("연결 상태:", eventSource.readyState); // 1 (OPEN)
+                };
+
+                // onmessage: 서버에서 데이터를 보낼 때마다 실행
+                // emitter.send()가 호출될 때마다 이 함수가 실행됨
+                eventSource.onmessage = function (event) {
+                    // event.data: 서버에서 보낸 실제 데이터
+                    // event.type: 이벤트 타입 (기본값: "message")
+                    // event.lastEventId: 마지막 이벤트 ID (설정한 경우)
+                    addMessage("📨 받은 데이터: " + event.data, "data");
+                    console.log("받은 이벤트:", event);
+                };
+
+                // onerror: 에러가 발생했거나 연결이 종료됐을 때 실행
+                // 네트워크 오류, 서버 종료, emitter.complete() 호출 시 발생
+                eventSource.onerror = function (event) {
+                    addMessage("❌ 에러 발생 또는 연결 종료", "error");
+                    console.log("에러 이벤트:", event);
+                    console.log("연결 상태:", eventSource.readyState); // 2 (CLOSED) 또는 0 (CONNECTING)
+                };
+            }
+
+            function stopSSE() {
+                if (eventSource) {
+                    eventSource.close();
+                    addMessage("🔌 SSE 연결 수동 종료", "info");
+                    eventSource = null;
+                } else {
+                    addMessage("연결된 SSE가 없습니다", "warning");
+                }
+            }
+
+            // 메시지를 화면에 표시하는 헬퍼 함수
+            function addMessage(message, type = "default") {
+                const div = document.createElement("div");
+                div.className = "message";
+
+                // 현재 시간 추가
+                const time = new Date().toLocaleTimeString();
+                div.innerHTML = `[${time}] ${message}`;
+
+                // 메시지 타입에 따른 스타일 적용
+                switch (type) {
+                    case "success":
+                        div.style.color = "green";
+                        break;
+                    case "error":
+                        div.style.color = "red";
+                        break;
+                    case "data":
+                        div.style.color = "blue";
+                        break;
+                    case "info":
+                        div.style.color = "orange";
+                        break;
+                    case "warning":
+                        div.style.color = "purple";
+                        break;
+                }
+
+                // DOM에 추가
+                document.getElementById("messages").appendChild(div);
+
+                // 스크롤을 맨 아래로 이동
+                document.getElementById("messages").scrollTop =
+                    document.getElementById("messages").scrollHeight;
+            }
+
+            // 페이지 종료 시 연결 정리
+            window.addEventListener("beforeunload", function () {
+                if (eventSource) {
+                    eventSource.close();
+                }
+            });
+        </script>
+    </body>
+</html>

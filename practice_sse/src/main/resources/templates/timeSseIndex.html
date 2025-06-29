@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>실시간 시계 - SSE</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f0f0f0;
+    }
+    .clock-container {
+        text-align: center;
+        margin: 20px 0;
+    }
+    #clock {
+        font-size: 2em;
+        font-weight: bold;
+        color: #333;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: inline-block;
+        min-width: 300px;
+    }
+    #status {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .connected { background-color: #d4edda; color: #155724; }
+    .disconnected { background-color: #f8d7da; color: #721c24; }
+    .connecting { background-color: #fff3cd; color: #856404; }
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .start-btn { background-color: #28a745; color: white; }
+    .stop-btn { background-color: #dc3545; color: white; }
+    #log {
+        margin-top: 20px;
+        height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background: white;
+    }
+  </style>
+</head>
+<body>
+<h1>🕐 실시간 서버 시계</h1>
+
+<div class="clock-container">
+  <div id="clock">시계를 시작하세요</div>
+  <div id="status" class="disconnected">연결되지 않음</div>
+</div>
+
+<div>
+  <button class="start-btn" onclick="startClock()">시계 시작</button>
+  <button class="stop-btn" onclick="stopClock()">시계 중지</button>
+</div>
+
+<h3>연결 로그</h3>
+<div id="log"></div>
+
+<script>
+  let timeSource = null;
+
+  function startClock() {
+      // 이미 연결이 있으면 종료
+      if (timeSource) {
+          timeSource.close();
+      }
+
+      updateStatus('connecting', '연결 중...');
+      addLog('시계 SSE 연결 시도');
+
+      // SSE 연결 생성
+      timeSource = new EventSource('/api/current-time');
+
+      // 연결 성공
+      timeSource.onopen = function(event) {
+          updateStatus('connected', '연결됨 - 실시간 업데이트 중');
+          addLog('✅ 서버와 연결 성공');
+      };
+
+      // 시간 업데이트 이벤트 처리
+      // 서버에서 .name("time-update")로 보낸 이벤트만 처리
+      timeSource.addEventListener('time-update', function(event) {
+          // 받은 시간을 시계에 표시
+          document.getElementById('clock').textContent = '🕐 ' + event.data;
+          addLog('⏰ 시간 업데이트: ' + event.data);
+      });
+
+      // 일반 메시지 (혹시 다른 타입의 메시지가 올 경우)
+      timeSource.onmessage = function(event) {
+          addLog('📨 일반 메시지: ' + event.data);
+      };
+
+      // 에러 또는 연결 종료
+      timeSource.onerror = function(event) {
+          updateStatus('disconnected', '연결 끊어짐');
+          addLog('❌ 연결 에러 또는 종료');
+
+          // 연결 상태 확인
+          if (timeSource.readyState === EventSource.CLOSED) {
+              addLog('🔌 연결이 완전히 종료됨');
+          } else if (timeSource.readyState === EventSource.CONNECTING) {
+              addLog('🔄 재연결 시도 중...');
+          }
+      };
+  }
+
+  function stopClock() {
+      if (timeSource) {
+          timeSource.close();
+          updateStatus('disconnected', '수동으로 중지됨');
+          addLog('🛑 사용자가 시계를 중지함');
+          timeSource = null;
+
+          // 시계 초기화
+          document.getElementById('clock').textContent = '시계가 중지됨';
+      } else {
+          addLog('⚠️ 중지할 연결이 없음');
+      }
+  }
+
+  // 상태 표시 업데이트
+  function updateStatus(type, message) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = type;
+      statusDiv.textContent = message;
+  }
+
+  // 로그 추가
+  function addLog(message) {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.innerHTML = `[${time}] ${message}`;
+      logDiv.appendChild(logEntry);
+
+      // 스크롤을 맨 아래로
+      logDiv.scrollTop = logDiv.scrollHeight;
+  }
+
+  // 페이지 종료 시 연결 정리
+  window.addEventListener('beforeunload', function() {
+      if (timeSource) {
+          timeSource.close();
+      }
+  });
+</script>
+</body>
+</html>

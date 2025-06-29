@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>다양한 이벤트 타입 - SSE</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .event-section {
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #ccc;
+    }
+    .welcome { border-left-color: #28a745; background-color: #d4edda; }
+    .notification { border-left-color: #ffc107; background-color: #fff3cd; }
+    .data { border-left-color: #17a2b8; background-color: #d1ecf1; }
+    .numbered { border-left-color: #6f42c1; background-color: #e2d9f3; }
+    .goodbye { border-left-color: #dc3545; background-color: #f8d7da; }
+
+    button {
+        padding: 12px 24px;
+        margin: 10px 5px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .start-btn { background-color: #007bff; color: white; }
+    .stop-btn { background-color: #6c757d; color: white; }
+
+    .event-log {
+        margin-top: 20px;
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        background-color: #f8f9fa;
+        font-family: 'Courier New', monospace;
+    }
+
+    .json-data {
+        background-color: #f1f3f4;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        margin: 5px 0;
+    }
+
+    .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .status.connected { background-color: #d4edda; color: #155724; }
+    .status.disconnected { background-color: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎭 다양한 이벤트 타입 SSE 테스트</h1>
+
+  <div id="connection-status" class="status disconnected">연결되지 않음</div>
+
+  <div>
+    <button class="start-btn" onclick="startMixedEvents()">이벤트 스트림 시작</button>
+    <button class="stop-btn" onclick="stopMixedEvents()">연결 중지</button>
+  </div>
+
+  <!-- 각 이벤트 타입별 표시 영역 -->
+  <div id="welcome-section" class="event-section welcome" style="display: none;">
+    <h3>🎉 환영 메시지</h3>
+    <div id="welcome-content"></div>
+  </div>
+
+  <div id="notification-section" class="event-section notification" style="display: none;">
+    <h3>🔔 알림</h3>
+    <div id="notification-content"></div>
+  </div>
+
+  <div id="data-section" class="event-section data" style="display: none;">
+    <h3>📊 데이터</h3>
+    <div id="data-content"></div>
+  </div>
+
+  <div id="numbered-section" class="event-section numbered" style="display: none;">
+    <h3>🔢 순서가 있는 메시지</h3>
+    <div id="numbered-content"></div>
+  </div>
+
+  <div id="goodbye-section" class="event-section goodbye" style="display: none;">
+    <h3>👋 작별 메시지</h3>
+    <div id="goodbye-content"></div>
+  </div>
+
+  <h3>📝 상세 로그</h3>
+  <div id="event-log" class="event-log"></div>
+</div>
+
+<script>
+  let mixedSource = null;
+
+  function startMixedEvents() {
+      // 기존 연결 정리
+      if (mixedSource) {
+          mixedSource.close();
+      }
+
+      // UI 초기화
+      resetUI();
+      updateConnectionStatus(true, '연결 중...');
+      addLog('🚀 혼합 이벤트 SSE 연결 시작');
+
+      // SSE 연결 생성
+      mixedSource = new EventSource('/api/mixed-events');
+
+      // 연결 성공 이벤트
+      mixedSource.onopen = function(event) {
+          updateConnectionStatus(true, '연결됨 - 이벤트 수신 중');
+          addLog('✅ 서버 연결 성공');
+      };
+
+      // 1. 환영 메시지 처리
+      mixedSource.addEventListener('welcome', function(event) {
+          showSection('welcome-section');
+          document.getElementById('welcome-content').innerHTML =
+              `<p><strong>${event.data}</strong></p>`;
+          addLog('🎉 환영 메시지 받음: ' + event.data);
+      });
+
+      // 2. 알림 처리
+      mixedSource.addEventListener('notification', function(event) {
+          showSection('notification-section');
+          document.getElementById('notification-content').innerHTML =
+              `<p>⚠️ ${event.data}</p>`;
+          addLog('🔔 알림 받음: ' + event.data);
+
+          // 브라우저 알림도 표시 (권한이 있는 경우)
+          if (Notification.permission === 'granted') {
+              new Notification('SSE 알림', { body: event.data });
+          }
+      });
+
+      // 3. 데이터 처리 (JSON)
+      mixedSource.addEventListener('data', function(event) {
+          showSection('data-section');
+          try {
+              // JSON 파싱 시도
+              const userData = JSON.parse(event.data);
+              document.getElementById('data-content').innerHTML = `
+                  <div class="json-data">
+                      <strong>사용자 정보:</strong><br>
+                      👤 이름: ${userData.user}<br>
+                      🟢 상태: ${userData.status}<br>
+                      ⏰ 로그인 시간: ${userData.loginTime}
+                  </div>
+              `;
+              addLog('📊 JSON 데이터 받음: ' + JSON.stringify(userData, null, 2));
+          } catch (e) {
+              // JSON이 아닌 경우 그대로 표시
+              document.getElementById('data-content').innerHTML =
+                  `<div class="json-data">${event.data}</div>`;
+              addLog('📊 데이터 받음: ' + event.data);
+          }
+      });
+
+      // 4. 번호가 있는 메시지 처리
+      mixedSource.addEventListener('numbered', function(event) {
+          showSection('numbered-section');
+          const content = document.getElementById('numbered-content');
+          const messageDiv = document.createElement('div');
+          messageDiv.innerHTML = `
+              <p><strong>ID:</strong> ${event.lastEventId} | <strong>내용:</strong> ${event.data}</p>
+          `;
+          content.appendChild(messageDiv);
+
+          addLog(`🔢 순서 메시지 [ID: ${event.lastEventId}]: ${event.data}`);
+      });
+
+      // 5. 작별 메시지 처리
+      mixedSource.addEventListener('goodbye', function(event) {
+          showSection('goodbye-section');
+          document.getElementById('goodbye-content').innerHTML =
+              `<p><strong>${event.data}</strong></p>`;
+          addLog('👋 작별 메시지: ' + event.data);
+      });
+
+      // 기본 메시지 핸들러 (타입이 지정되지 않은 메시지)
+      mixedSource.onmessage = function(event) {
+          addLog('📨 기본 메시지: ' + event.data);
+      };
+
+      // 에러 및 연결 종료 처리
+      mixedSource.onerror = function(event) {
+          updateConnectionStatus(false, '연결 종료됨');
+          addLog('❌ 연결 에러 또는 종료');
+
+          if (mixedSource.readyState === EventSource.CLOSED) {
+              addLog('🔌 모든 이벤트 전송 완료 - 연결 종료');
+          }
+      };
+  }
+
+  function stopMixedEvents() {
+      if (mixedSource) {
+          mixedSource.close();
+          updateConnectionStatus(false, '수동으로 중지됨');
+          addLog('🛑 사용자가 연결을 중지함');
+          mixedSource = null;
+      } else {
+          addLog('⚠️ 중지할 연결이 없음');
+      }
+  }
+
+  // UI 헬퍼 함수들
+  function showSection(sectionId) {
+           document.getElementById(sectionId).style.display = 'block';
+       }
+
+       function resetUI() {
+           // 모든 이벤트 섹션 숨기기
+           const sections = ['welcome-section', 'notification-section', 'data-section',
+                           'numbered-section', 'goodbye-section'];
+           sections.forEach(id => {
+               document.getElementById(id).style.display = 'none';
+           });
+
+           // 내용 초기화
+           document.getElementById('welcome-content').innerHTML = '';
+           document.getElementById('notification-content').innerHTML = '';
+           document.getElementById('data-content').innerHTML = '';
+           document.getElementById('numbered-content').innerHTML = '';
+           document.getElementById('goodbye-content').innerHTML = '';
+       }
+
+       function updateConnectionStatus(connected, message) {
+           const statusDiv = document.getElementById('connection-status');
+           statusDiv.className = connected ? 'status connected' : 'status disconnected';
+           statusDiv.textContent = message;
+       }
+
+       function addLog(message) {
+           const logDiv = document.getElementById('event-log');
+           const time = new Date().toLocaleTimeString();
+           const logEntry = document.createElement('div');
+           logEntry.innerHTML = `[${time}] ${message}`;
+           logDiv.appendChild(logEntry);
+
+           // 스크롤을 맨 아래로
+           logDiv.scrollTop = logDiv.scrollHeight;
+       }
+
+       // 브라우저 알림 권한 요청
+       function requestNotificationPermission() {
+           if ('Notification' in window && Notification.permission === 'default') {
+               Notification.requestPermission().then(permission => {
+                   addLog('🔔 알림 권한: ' + permission);
+               });
+           }
+       }
+
+       // 페이지 로드 시 알림 권한 요청
+       window.addEventListener('load', function() {
+           requestNotificationPermission();
+           addLog('📄 페이지 로드 완료 - SSE 테스트 준비됨');
+       });
+
+       // 페이지 종료 시 연결 정리
+       window.addEventListener('beforeunload', function() {
+           if (mixedSource) {
+               mixedSource.close();
+           }
+       });
+</script>
+</body>
+</html>
